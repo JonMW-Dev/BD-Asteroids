@@ -1,13 +1,15 @@
 import circleshape
 import pygame
-from constants import PLAYER_RADIUS, LINE_WIDTH
-
+from constants import PLAYER_RADIUS, LINE_WIDTH, PLAYER_TURN_SPEED, PLAYER_SPEED
+from constants import PLAYER_SHOOT_SPEED, PLAYER_SHOOT_COOLDOWN_SECONDS
+from shot import Shot
 class Player(circleshape.CircleShape):
     rotation = 0
+    shoot_timer = 0
     #constructor 
     def __init__ (self, x: int, y: int)-> None:
         super().__init__(x,y, PLAYER_RADIUS)
-
+        self.shoot_timer = 0
         
 
         # in the Player class
@@ -21,3 +23,44 @@ class Player(circleshape.CircleShape):
 
     def draw(self, screen: pygame.Surface) -> None:
         pygame.draw.polygon(screen, "white", self.triangle(), LINE_WIDTH)
+
+
+    # Rotate player character
+    def rotate(self, dt) -> None:
+        self.rotation += PLAYER_TURN_SPEED * dt
+        print(f"Rotation changed: {self.rotation}")
+
+    def update(self, dt: float) -> None:
+        self.shoot_timer -= dt
+        
+        keys = pygame.key.get_pressed() #gets key event
+
+        # depending on the key pressed, rotate left or right. 
+        if keys[pygame.K_a]:
+            self.rotate(dt*(-1))
+        if keys[pygame.K_d]:
+            self.rotate(dt)
+        if keys[pygame.K_w]:
+            self.move(dt)
+        if keys[pygame.K_s]:
+            self.move(dt*(-1))
+        if keys[pygame.K_SPACE]:
+            self.shoot()
+    
+
+    def move(self, dt: float):
+        unit_vector = pygame.Vector2(0, 1)
+        rotated_vector = unit_vector.rotate(self.rotation)
+        rotated_with_speed_vector = rotated_vector * PLAYER_SPEED * dt
+        self.position += rotated_with_speed_vector
+
+    def shoot(self):
+        if self.shoot_timer > 0:
+            return
+        else:
+            self.shoot_timer = PLAYER_SHOOT_COOLDOWN_SECONDS
+
+        new_shot = Shot(self.position.x, self.position.y)
+        velocity = pygame.Vector2(0, 1).rotate(self.rotation)
+        velocity *= PLAYER_SHOOT_SPEED
+        new_shot.velocity = velocity
